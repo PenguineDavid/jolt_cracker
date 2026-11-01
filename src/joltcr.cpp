@@ -34,7 +34,7 @@ namespace joltcr
             unknown
         };
 
-        /*
+                /*
             * basic implementation of java.util.Random random algorithm with set_seed next_bits and next_int methods
             * java.util.Random uses a LCG (Linear congruential generator) algorithm to generate pseudo random numbers. The algorithm's internal state relies on a 48bit seed. With every request for a new random number the seed is updated using this equation:
             * seed[n+1] = (seed[n] * multiplier + addend) & (mod mask)
@@ -46,10 +46,10 @@ namespace joltcr
         class java_random
         {
         private:
-            int64_t seed;
-            int64_t multiplier = 0x5DEECE66D;
-            int64_t addend = 0xB;
-            int64_t mask = (1LL << 48) - 1;
+            uint64_t seed;
+            static constexpr uint64_t multiplier = 0x5DEECE66DULL;
+            static constexpr uint64_t addend = 0xBULL;
+            static constexpr uint64_t mask = (1ULL << 48) - 1;
 
         public:
             java_random()
@@ -61,7 +61,7 @@ namespace joltcr
             void set_seed(int64_t seed_value)
             {
                 // java uses xor with multiplier to initialize the seed instead of just setting it directly
-                seed = (seed_value ^ multiplier) & mask;
+                seed = (static_cast<uint64_t>(seed_value) ^ multiplier) & mask;
             }
 
             int32_t next_bits(int bits)
@@ -79,15 +79,19 @@ namespace joltcr
 
                 if ((bound & -bound) == bound) // Check if bound is a power of 2
                 {
-                    return static_cast<int32_t>((bound * static_cast<int64_t>(next_bits(31))) >> 31);
+                    return static_cast<int32_t>(
+                        (static_cast<int64_t>(bound) * next_bits(31)) >> 31);
                 }
 
                 int32_t bits, val;
+                int64_t rejection;
                 do
                 {
                     bits = next_bits(31);
                     val = bits % bound;
-                } while (bits - val + (bound - 1) < 0); // Reject if the value is in the "remainder" range
+                    rejection = static_cast<int64_t>(bits) - val +
+                                (static_cast<int64_t>(bound) - 1);
+                } while (rejection >= (1LL << 31)); // Reject if the Java int calculation would overflow
 
                 return val;
             }
