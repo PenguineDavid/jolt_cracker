@@ -135,7 +135,7 @@ namespace joltcr
         // reproduces the pattern minecraft would give for a given hud tick so as tolater brute force the hud tick from the hunger pattern
         std::vector<pattern_token> reproduce_pattern(int32_t hud_tick, bool low_health, java_random* rand_gen)
         {
-            rand_gen->set_seed(static_cast<int32_t>(static_cast<int64_t>(hud_tick) * 312871)); // 312871 is a little random hud seed multiplier used by mojang (see mcsrc.dev 1.16.5 net/minecraft/client/gui/Gui ln 734)
+            rand_gen->set_seed(static_cast<int64_t>(hud_tick) * 312871); // 312871 is a little random hud seed multiplier used by mojang (see mcsrc.dev 1.16.5 net/minecraft/client/gui/Gui ln 734)
             if (low_health)
             {
                 for (int i = 0; i < 10; i++) 
@@ -167,9 +167,9 @@ namespace joltcr
         }
 
         // calculates the time between hunger jolts so as not to check ticks that don't even have jolts the formula minecraft uses for this is hudTick mod (hunger * 3 + 1) == 0
-        int32_t between_time(int32_t hunger)
+        int64_t between_time(int32_t hunger)
         {
-            return hunger * 3 + 1;
+            return static_cast<int64_t>(hunger) * 3 + 1;
         }
 
         // checks if two arrays of pattern tokens match taking into account any unknown shanks
@@ -203,12 +203,12 @@ namespace joltcr
                              std::vector<std::vector<int32_t>>* out)
         {
             java_random rand_gen;
-            const int32_t stride = between_time(work.hunger);
+            const int64_t stride = between_time(work.hunger);
 
             for (size_t iter = begin_iter; iter < end_iter; ++iter)
             {
                 // iter * stride <= max_tick by construction; cast is safe.
-                const int32_t tick = static_cast<int32_t>(iter) * stride;
+                const int32_t tick = static_cast<int32_t>(static_cast<int64_t>(iter) * stride);
                 auto produced = reproduce_pattern(tick, work.low_health, &rand_gen);
 
                 for (size_t k = 0; k < work.tokens->size(); ++k)
@@ -285,7 +285,7 @@ namespace joltcr
 
         for (const auto& g : groups)
         {
-            const int32_t stride = between_time(g.hunger);
+            const int64_t stride = between_time(g.hunger);
 
             // Number of ticks in the group's progression: t = 0, stride, 2*stride, ...
             // up to and including max_tick.  Computed in int64_t so (max_tick + 1)
